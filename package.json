@@ -1,6 +1,7 @@
 {
   "name": "@steedos/odata-v4-typeorm",
-  "version": "0.0.11",
+  "private": false,
+  "version": "0.0.15",
   "description": "OData to TYPEORM query compiler",
   "main": "build/lib/index.js",
   "typings": "build/lib/index",
@@ -12,8 +13,7 @@
     "pretest": "npm run build",
     "test": "mocha",
     "pretdd": "npm run build",
-    "tdd": "mocha -w",
-    "publish": "npm run build && npm publish"
+    "tdd": "mocha -w"
   },
   "repository": {
     "type": "git",
@@ -45,5 +45,8 @@
     "odata-v4-server": "rc",
     "pg": "^6.1.0",
     "typescript": "^2.0.6"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
