@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const createQuery_1 = require("./createQuery");
+const odata_v4_sql_1 = require("odata-v4-sql");
 const mapToObject = (aMap) => {
     const obj = {};
     if (aMap) {
@@ -49,12 +50,35 @@ const processIncludes = (queryBuilder, odataQuery, alias) => {
 };
 const executeQueryByQueryBuilder = (inputQueryBuilder, query, options) => __awaiter(this, void 0, void 0, function* () {
     const alias = inputQueryBuilder.expressionMap.mainAlias.name;
+    options.alias = alias;
     //const filter = createFilter(query.$filter, {alias: alias});
     let odataQuery = {};
     if (query) {
         const odataString = queryToOdataString(query);
         if (odataString) {
-            odataQuery = createQuery_1.createQuery(odataString, { alias: alias });
+            odataQuery = createQuery_1.createQuery(odataString, options);
+        }
+    }
+    const queryRunner = inputQueryBuilder.connection.driver.createQueryRunner("master");
+    const isPaging = query.$skip !== undefined || query.$top !== undefined;
+    if (queryRunner && isPaging && options.type == odata_v4_sql_1.SQLLang.MsSql) {
+        // 老版本的SQL server 不支持OFFSET FETCH 的语法来翻页，只能单独处理
+        const connectionOptions = queryRunner.connection.options.options;
+        const tdsVersion = connectionOptions && connectionOptions.tdsVersion;
+        if (tdsVersion && tdsVersion.replace(/[^\d]/g, "") < 74) {
+            // tdsVersion is less then 7_4, like 7_1,7_2,7_3_A,7_3_B...etc, the default value is 7_4
+            // 7_4是2012及以上版本的SQL Server
+            const runSql = odataQuery.from(alias);
+            const result = yield queryRunner.query(runSql);
+            if (query.$count && query.$count !== 'false') {
+                return {
+                    items: result.concat(),
+                    count: result.length
+                };
+            }
+            else {
+                return result.concat();
+            }
         }
     }
     let queryBuilder = inputQueryBuilder;
@@ -85,7 +109,7 @@ const executeQueryByQueryBuilder = (inputQueryBuilder, query, options) => __awai
     return queryBuilder.getMany();
 });
 const executeQuery = (repositoryOrQueryBuilder, query, options) => __awaiter(this, void 0, void 0, function* () {
-    options = options || {};
+    // options = options || {};
     const alias = options.alias || '';
     let queryBuilder = null;
     // check that input object is query builder
@@ -95,7 +119,7 @@ const executeQuery = (repositoryOrQueryBuilder, query, options) => __awaiter(thi
     else {
         queryBuilder = repositoryOrQueryBuilder.createQueryBuilder(alias);
     }
-    const result = yield executeQueryByQueryBuilder(queryBuilder, query, { alias });
+    const result = yield executeQueryByQueryBuilder(queryBuilder, query, options);
     return result;
 });
 exports.executeQuery = executeQuery;

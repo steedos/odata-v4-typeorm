@@ -8,18 +8,45 @@ class TypeOrmVisitor extends visitor_1.Visitor {
         //parameters:any[] = [];
         this.includes = [];
         this.alias = ''; // 'typeorm_query';
-        this.type = visitor_1.SQLLang.Oracle;
+        if (!options.type) {
+            this.type = visitor_1.SQLLang.Oracle;
+        }
+        else {
+            this.type = options.type;
+        }
         this.alias = options.alias || this.alias;
     }
     from(table) {
-        let sql = `SELECT ${this.select} FROM ${table} WHERE ${this.where} ORDER BY ${this.orderby}`;
-        if (typeof this.skip == 'number')
-            sql += ` OFFSET ${this.skip} ROWS`;
-        if (typeof this.limit == 'number') {
-            if (typeof this.skip != 'number')
-                sql += ' OFFSET 0 ROWS';
-            sql += ` FETCH NEXT ${this.limit} ROWS ONLY`;
+        let sql = `SELECT ${this.select} FROM [${table}] WHERE ${this.where} ORDER BY ${this.orderby}`;
+        switch (this.type) {
+            case visitor_1.SQLLang.Oracle:
+                if (typeof this.skip == "number")
+                    sql += ` OFFSET ${this.skip} ROWS`;
+                if (typeof this.limit == "number") {
+                    if (typeof this.skip != "number")
+                        sql += " OFFSET 0 ROWS";
+                    sql += ` FETCH NEXT ${this.limit} ROWS ONLY`;
+                }
+            case visitor_1.SQLLang.MsSql:
+                if (typeof this.orderby !== "string" || this.orderby === "1") {
+                    throw new Error("orderby must not be empty for sql server when paging");
+                }
+                let start = this.skip ? this.skip : 0;
+                let end = start + this.limit;
+                sql = `SELECT * from (SELECT ${this.select}, ROW_NUMBER() OVER(ORDER BY ${this.orderby}) AS RowId 
+          FROM [${table}]) as a WHERE RowId BETWEEN ${start} + 1 and ${end}`;
+                break;
+            case visitor_1.SQLLang.MySql:
+            case visitor_1.SQLLang.PostgreSql:
+            default:
+                if (typeof this.limit == "number")
+                    sql += ` LIMIT ${this.limit}`;
+                if (typeof this.skip == "number")
+                    sql += ` OFFSET ${this.skip}`;
+                break;
         }
+        // 给sql语句中字段名称增加中括号，防止字段名称使用了数据库的关键字
+        sql = sql.replace(/(\b\w+\b)\.(\b\w+\b)/g, '[$1].[$2]');
         return sql;
     }
     VisitExpand(node, context) {

@@ -15,7 +15,9 @@ import {SqlOptions} from './sqlOptions';
 export function createQuery(odataQuery: string, options?: SqlOptions): Visitor;
 export function createQuery(odataQuery: Token, options?: SqlOptions): Visitor;
 export function createQuery(odataQuery: string | Token, options = <SqlOptions>{}): Visitor {
-  options.type = SQLLang.Oracle;
+  if (!options.type) {
+    options.type = SQLLang.Oracle;
+  }
   let ast: Token = <Token>(typeof odataQuery == 'string' ? query(<string>odataQuery) : odataQuery);
   return new Visitor(options).Visit(ast).asType();
 }

@@ -4,7 +4,9 @@ const visitor_1 = require("./visitor");
 const odata_v4_parser_1 = require("odata-v4-parser");
 const odata_v4_sql_1 = require("odata-v4-sql");
 function createQuery(odataQuery, options = {}) {
-    options.type = odata_v4_sql_1.SQLLang.Oracle;
+    if (!options.type) {
+        options.type = odata_v4_sql_1.SQLLang.Oracle;
+    }
     let ast = (typeof odataQuery == 'string' ? odata_v4_parser_1.query(odataQuery) : odataQuery);
     return new visitor_1.TypeOrmVisitor(options).Visit(ast).asType();
 }
