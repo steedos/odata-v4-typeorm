@@ -49,6 +49,7 @@ const processIncludes = (queryBuilder, odataQuery, alias) => {
     return queryBuilder;
 };
 const executeQueryByQueryBuilder = (inputQueryBuilder, query, options) => __awaiter(this, void 0, void 0, function* () {
+    console.log("***************executeQueryByQueryBuilder****************");
     const alias = inputQueryBuilder.expressionMap.mainAlias.name;
     options.alias = alias;
     //const filter = createFilter(query.$filter, {alias: alias});
@@ -106,6 +107,8 @@ const executeQueryByQueryBuilder = (inputQueryBuilder, query, options) => __awai
             count: resultData[1]
         };
     }
+    console.log("***************executeQueryByQueryBuilder*******queryBuilder.getQuery()***********");
+    console.log(queryBuilder.getQuery());
     return queryBuilder.getMany();
 });
 const executeQuery = (repositoryOrQueryBuilder, query, options) => __awaiter(this, void 0, void 0, function* () {

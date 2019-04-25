@@ -129,6 +129,12 @@ class TypeOrmVisitor extends visitor_1.Visitor {
         else
             this.where += (context.literal = visitor_1.SQLLiteral.convert(node.value, node.raw));
     }
+    VisitNotExpression(node, context) {
+        if (node.value && node.value.type === "MethodCallExpression" && node.value.value.method) {
+            node.value.value.method = `not ${node.value.value.method}`;
+            this.VisitMethodCallExpression(node.value, context);
+        }
+    }
     VisitMethodCallExpression(node, context) {
         var method = node.value.method;
         var params = node.value.parameters || [];
@@ -144,6 +150,17 @@ class TypeOrmVisitor extends visitor_1.Visitor {
                 else
                     this.where += ` like '%${visitor_1.SQLLiteral.convert(params[1].value, params[1].raw).slice(1, -1)}%'`;
                 break;
+            case "not contains":
+                this.Visit(params[0], context);
+                if (this.options.useParameters) {
+                    let name = `p${this.parameterSeed++}`;
+                    let value = odata_v4_literal_1.Literal.convert(params[1].value, params[1].raw);
+                    this.parameters.set(name, `%${value}%`);
+                    this.where += " not like ?";
+                }
+                else
+                    this.where += ` not like '%${visitor_1.SQLLiteral.convert(params[1].value, params[1].raw).slice(1, -1)}%'`;
+                break;
             case "endswith":
                 this.Visit(params[0], context);
                 if (this.options.useParameters) {
@@ -155,6 +172,17 @@ class TypeOrmVisitor extends visitor_1.Visitor {
                 else
                     this.where += ` like '%${visitor_1.SQLLiteral.convert(params[1].value, params[1].raw).slice(1, -1)}'`;
                 break;
+            case "not endswith":
+                this.Visit(params[0], context);
+                if (this.options.useParameters) {
+                    let name = `p${this.parameterSeed++}`;
+                    let value = odata_v4_literal_1.Literal.convert(params[1].value, params[1].raw);
+                    this.parameters.set(name, `%${value}`);
+                    this.where += " not like ?";
+                }
+                else
+                    this.where += ` not like '%${visitor_1.SQLLiteral.convert(params[1].value, params[1].raw).slice(1, -1)}'`;
+                break;
             case "startswith":
                 this.Visit(params[0], context);
                 if (this.options.useParameters) {
@@ -165,6 +193,17 @@ class TypeOrmVisitor extends visitor_1.Visitor {
                 }
                 else
                     this.where += ` like '${visitor_1.SQLLiteral.convert(params[1].value, params[1].raw).slice(1, -1)}%'`;
+                break;
+            case "not startswith":
+                this.Visit(params[0], context);
+                if (this.options.useParameters) {
+                    let name = `p${this.parameterSeed++}`;
+                    let value = odata_v4_literal_1.Literal.convert(params[1].value, params[1].raw);
+                    this.parameters.set(name, `${value}%`);
+                    this.where += " not like ?";
+                }
+                else
+                    this.where += ` not like '${visitor_1.SQLLiteral.convert(params[1].value, params[1].raw).slice(1, -1)}%'`;
                 break;
             case "indexof":
                 let fn = "";
