@@ -29,7 +29,7 @@ class TypeOrmVisitor extends visitor_1.Visitor {
                 }
             case visitor_1.SQLLang.MsSql:
                 if (typeof this.orderby !== "string" || this.orderby === "1") {
-                    throw new Error("orderby must not be empty for sql server when paging");
+                    this.orderby = "(select null) ASC";
                 }
                 let start = this.skip ? this.skip : 0;
                 let end = start + this.limit;
