@@ -117,10 +117,44 @@ const executeQuery = (repositoryOrQueryBuilder, query, options) => __awaiter(thi
         queryBuilder = repositoryOrQueryBuilder;
     }
     else {
-        queryBuilder = repositoryOrQueryBuilder.createQueryBuilder(alias);
+        queryBuilder = yield repositoryOrQueryBuilder.createQueryBuilder(alias);
     }
     const result = yield executeQueryByQueryBuilder(queryBuilder, query, options);
     return result;
 });
 exports.executeQuery = executeQuery;
+const executeCountQueryByQueryBuilder = (inputQueryBuilder, query, options) => __awaiter(this, void 0, void 0, function* () {
+    const alias = inputQueryBuilder.expressionMap.mainAlias.name;
+    options.alias = alias;
+    //const filter = createFilter(query.$filter, {alias: alias});
+    let odataQuery = {};
+    if (query) {
+        const odataString = queryToOdataString(query);
+        if (odataString) {
+            odataQuery = createQuery_1.createQuery(odataString, options);
+        }
+    }
+    const queryRunner = inputQueryBuilder.connection.driver.createQueryRunner("master");
+    let queryBuilder = inputQueryBuilder;
+    queryBuilder = queryBuilder
+        .andWhere(odataQuery.where)
+        .setParameters(mapToObject(odataQuery.parameters));
+    queryBuilder = processIncludes(queryBuilder, odataQuery, alias);
+    return yield queryBuilder.getCount();
+});
+const executeCountQuery = (repositoryOrQueryBuilder, query, options) => __awaiter(this, void 0, void 0, function* () {
+    // options = options || {};
+    const alias = options.alias || '';
+    let queryBuilder = null;
+    // check that input object is query builder
+    if (typeof repositoryOrQueryBuilder.expressionMap !== 'undefined') {
+        queryBuilder = repositoryOrQueryBuilder;
+    }
+    else {
+        queryBuilder = repositoryOrQueryBuilder.createQueryBuilder(alias);
+    }
+    const result = yield executeCountQueryByQueryBuilder(queryBuilder, query, options);
+    return result;
+});
+exports.executeCountQuery = executeCountQuery;
 //# sourceMappingURL=executeQuery.js.map

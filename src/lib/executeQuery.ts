@@ -125,10 +125,48 @@ const executeQuery = async (repositoryOrQueryBuilder: any, query, options: SqlOp
   if (typeof repositoryOrQueryBuilder.expressionMap !== 'undefined') {
     queryBuilder = repositoryOrQueryBuilder;
   } else {
-    queryBuilder = repositoryOrQueryBuilder.createQueryBuilder(alias);
+    queryBuilder = await repositoryOrQueryBuilder.createQueryBuilder(alias);
   }
   const result = await executeQueryByQueryBuilder(queryBuilder, query, options);
   return result;
 };
 
-export {executeQuery};
+
+const executeCountQueryByQueryBuilder = async (inputQueryBuilder, query, options: SqlOptions) => {
+  const alias = inputQueryBuilder.expressionMap.mainAlias.name;
+  options.alias = alias;
+  //const filter = createFilter(query.$filter, {alias: alias});
+  let odataQuery: any = {};
+  if (query) {
+    const odataString = queryToOdataString(query);
+    if (odataString) {
+      odataQuery = createQuery(odataString, options);
+    }
+  }
+  const queryRunner = inputQueryBuilder.connection.driver.createQueryRunner("master");
+  let queryBuilder = inputQueryBuilder;
+  queryBuilder = queryBuilder
+    .andWhere(odataQuery.where)
+    .setParameters(mapToObject(odataQuery.parameters));
+
+  queryBuilder = processIncludes(queryBuilder, odataQuery, alias);
+
+  return await queryBuilder.getCount();
+};
+
+const executeCountQuery = async (repositoryOrQueryBuilder: any, query, options: SqlOptions) => {
+  // options = options || {};
+  const alias = options.alias || '';
+  let queryBuilder = null;
+
+  // check that input object is query builder
+  if (typeof repositoryOrQueryBuilder.expressionMap !== 'undefined') {
+    queryBuilder = repositoryOrQueryBuilder;
+  } else {
+    queryBuilder = repositoryOrQueryBuilder.createQueryBuilder(alias);
+  }
+  const result = await executeCountQueryByQueryBuilder(queryBuilder, query, options);
+  return result;
+};
+
+export { executeQuery, executeCountQuery};
