@@ -49,6 +49,16 @@ export class TypeOrmVisitor extends Visitor {
     return sql;
   }
 
+  asMsSql() {
+    this.type = SQLLang.MsSql;
+    let rx = new RegExp("\\?", "g");
+    let keys = this.parameters.keys();
+    this.originalWhere = this.where;
+    this.where = this.where.replace(rx, () => `:${keys.next().value}`);
+    this.includes.forEach((item) => item.asMsSql());
+    return this;
+  }
+
   protected VisitExpand(node: Token, context: any) {
     node.value.items.forEach((item) => {
       let expandPath = item.value.path.raw;

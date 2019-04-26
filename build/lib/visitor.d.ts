@@ -5,6 +5,7 @@ export declare class TypeOrmVisitor extends Visitor {
     alias: string;
     constructor(options: any);
     from(table: string): string;
+    asMsSql(): this;
     protected VisitExpand(node: Token, context: any): void;
     protected VisitSelectItem(node: Token, context: any): void;
     protected VisitODataIdentifier(node: Token, context: any): void;

@@ -49,6 +49,15 @@ class TypeOrmVisitor extends visitor_1.Visitor {
         sql = sql.replace(/(\b\w+\b)\.(\b\w+\b)/g, '[$1].[$2]');
         return sql;
     }
+    asMsSql() {
+        this.type = visitor_1.SQLLang.MsSql;
+        let rx = new RegExp("\\?", "g");
+        let keys = this.parameters.keys();
+        this.originalWhere = this.where;
+        this.where = this.where.replace(rx, () => `:${keys.next().value}`);
+        this.includes.forEach((item) => item.asMsSql());
+        return this;
+    }
     VisitExpand(node, context) {
         node.value.items.forEach((item) => {
             let expandPath = item.value.path.raw;
