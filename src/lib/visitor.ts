@@ -35,7 +35,7 @@ export class TypeOrmVisitor extends Visitor {
         let start = this.skip ? this.skip : 0;
         let end = start + this.limit;
         sql = `SELECT * from (SELECT ${this.select}, ROW_NUMBER() OVER(ORDER BY ${this.orderby}) AS RowId 
-          FROM [${table}]) as a WHERE RowId BETWEEN ${start} + 1 and ${end}`;
+          FROM [${table}] WHERE ${this.where}) as a WHERE RowId BETWEEN ${start} + 1 and ${end}`;
         break;
       case SQLLang.MySql:
       case SQLLang.PostgreSql:

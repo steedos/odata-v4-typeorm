@@ -48,7 +48,7 @@ const processIncludes = (queryBuilder, odataQuery, alias) => {
     }
     return queryBuilder;
 };
-const executeQueryByQueryBuilder = (inputQueryBuilder, query, options) => __awaiter(this, void 0, void 0, function* () {
+const executeQueryByQueryBuilder = (inputQueryBuilder, query, options, returnSql = false) => __awaiter(this, void 0, void 0, function* () {
     const alias = inputQueryBuilder.expressionMap.mainAlias.name;
     options.alias = alias;
     //const filter = createFilter(query.$filter, {alias: alias});
@@ -68,7 +68,22 @@ const executeQueryByQueryBuilder = (inputQueryBuilder, query, options) => __awai
         if (tdsVersion && tdsVersion.replace(/[^\d]/g, "") < 74) {
             // tdsVersion is less then 7_4, like 7_1,7_2,7_3_A,7_3_B...etc, the default value is 7_4
             // 7_4是2012及以上版本的SQL Server
+            if (query) {
+                const odataString = queryToOdataString(query);
+                if (odataString) {
+                    // 因queryRunner.query函数传入params参数的方式未能调式成功（可能是原厂家BUG），
+                    // 所以这里useParameters设置为false，直接把参数值注入sql语句中
+                    options.useParameters = false;
+                    odataQuery = createQuery_1.createQuery(odataString, options);
+                }
+            }
             const runSql = odataQuery.from(alias);
+            if (returnSql) {
+                return runSql;
+            }
+            // let params = Array.from(odataQuery.parameters.values());
+            // let params = mapToObject(odataQuery.parameters);
+            // const result = await queryRunner.query(runSql, params);
             const result = yield queryRunner.query(runSql);
             if (query.$count && query.$count !== 'false') {
                 return {
@@ -98,6 +113,12 @@ const executeQueryByQueryBuilder = (inputQueryBuilder, query, options) => __awai
     queryBuilder = queryBuilder.skip(query.$skip || 0);
     if (query.$top) {
         queryBuilder = queryBuilder.take(query.$top);
+    }
+    if (returnSql) {
+        return {
+            sql: queryBuilder.getSql(),
+            query: queryBuilder.getQuery()
+        };
     }
     if (query.$count && query.$count !== 'false') {
         const resultData = yield queryBuilder.getManyAndCount();
@@ -157,4 +178,19 @@ const executeCountQuery = (repositoryOrQueryBuilder, query, options) => __awaite
     return result;
 });
 exports.executeCountQuery = executeCountQuery;
+const getExecuteQuerySQL = (repositoryOrQueryBuilder, query, options) => __awaiter(this, void 0, void 0, function* () {
+    // options = options || {};
+    const alias = options.alias || '';
+    let queryBuilder = null;
+    // check that input object is query builder
+    if (typeof repositoryOrQueryBuilder.expressionMap !== 'undefined') {
+        queryBuilder = repositoryOrQueryBuilder;
+    }
+    else {
+        queryBuilder = yield repositoryOrQueryBuilder.createQueryBuilder(alias);
+    }
+    const result = executeQueryByQueryBuilder(queryBuilder, query, options, true);
+    return result;
+});
+exports.getExecuteQuerySQL = getExecuteQuerySQL;
 //# sourceMappingURL=executeQuery.js.map

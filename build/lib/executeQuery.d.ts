@@ -1,4 +1,5 @@
 import { SqlOptions } from './sqlOptions';
 declare const executeQuery: (repositoryOrQueryBuilder: any, query: any, options: SqlOptions) => Promise<any>;
 declare const executeCountQuery: (repositoryOrQueryBuilder: any, query: any, options: SqlOptions) => Promise<any>;
-export { executeQuery, executeCountQuery };
+declare const getExecuteQuerySQL: (repositoryOrQueryBuilder: any, query: any, options: SqlOptions) => Promise<any>;
+export { executeQuery, executeCountQuery, getExecuteQuerySQL };
