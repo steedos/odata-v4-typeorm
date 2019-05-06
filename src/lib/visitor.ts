@@ -59,6 +59,27 @@ export class TypeOrmVisitor extends Visitor {
     return this;
   }
 
+  asPostgreSql() {
+    this.type = SQLLang.ANSI;
+    let rx = new RegExp("\\?", "g");
+    let keys = this.parameters.keys();
+    this.originalWhere = this.where;
+    this.where = this.where.replace(rx, () => `:${keys.next().value}`);
+    this.includes.forEach((item) => item.asMsSql());
+    return this;
+  }
+
+  asType() {
+    switch (this.type) {
+      case SQLLang.MsSql: return this.asMsSql();
+      case SQLLang.ANSI:
+      case SQLLang.MySql:
+      case SQLLang.PostgreSql: return this.asPostgreSql();
+      case SQLLang.Oracle: return this.asOracleSql();
+      default: return this;
+    }
+  }
+
   protected VisitExpand(node: Token, context: any) {
     node.value.items.forEach((item) => {
       let expandPath = item.value.path.raw;

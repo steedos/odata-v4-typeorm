@@ -6,6 +6,8 @@ export declare class TypeOrmVisitor extends Visitor {
     constructor(options: any);
     from(table: string): string;
     asMsSql(): this;
+    asPostgreSql(): this;
+    asType(): this;
     protected VisitExpand(node: Token, context: any): void;
     protected VisitSelectItem(node: Token, context: any): void;
     protected VisitODataIdentifier(node: Token, context: any): void;
