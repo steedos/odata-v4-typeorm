@@ -62,47 +62,59 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
       odataQuery = createQuery(odataString, options);
     }
   }
+  let queryBuilder = inputQueryBuilder;
+
+  queryBuilder = queryBuilder
+    .andWhere(odataQuery.where)
+    .setParameters(mapToObject(odataQuery.parameters));
+
   const queryRunner = inputQueryBuilder.connection.driver.createQueryRunner("master");
   const isPaging = query.$skip !== undefined || query.$top !== undefined;
-  if (queryRunner && isPaging && options.type == SQLLang.MsSql){
+  if (queryRunner && isPaging && options.type == SQLLang.MsSql) {
     // 老版本的SQL server 不支持OFFSET FETCH 的语法来翻页，只能单独处理
     const connectionOptions = queryRunner.connection.options.options;
     const tdsVersion = connectionOptions && connectionOptions.tdsVersion;
-    if (tdsVersion && tdsVersion.replace(/[^\d]/g, "") < 74){
+    if (tdsVersion && tdsVersion.replace(/[^\d]/g, "") < 74) {
       // tdsVersion is less then 7_4, like 7_1,7_2,7_3_A,7_3_B...etc, the default value is 7_4
       // 7_4是2012及以上版本的SQL Server
-      if (query) {
-        const odataString = queryToOdataString(query);
-        if (odataString) {
-          // 因queryRunner.query函数传入params参数的方式未能调式成功（可能是原厂家BUG），
-          // 所以这里useParameters设置为false，直接把参数值注入sql语句中
-          options.useParameters = false;
-          odataQuery = createQuery(odataString, options);
-        }
+      let selectFields = "*";
+      if (odataQuery.select && odataQuery.select != '*') {
+        selectFields = odataQuery.select.split(',').map(i => i.trim()).join(",");
       }
-      const runSql = odataQuery.from(alias);
-      if (returnSql){
-        return runSql;
+      let orderby = odataQuery.orderby;
+      if (!(orderby && orderby !== '1')) {
+        orderby = "(select null) ASC";
       }
-      // let params = Array.from(odataQuery.parameters.values());
-      // let params = mapToObject(odataQuery.parameters);
-      // const result = await queryRunner.query(runSql, params);
-      const result = await queryRunner.query(runSql);
+      const RowIdKey = "RowId";
+      queryBuilder = queryBuilder.select(`${selectFields},ROW_NUMBER() OVER(ORDER BY ${orderby}) AS ${RowIdKey}`);
+      let qs = queryBuilder.getQueryAndParameters();
+      if (returnSql) {
+        return qs;
+      }
+      let start = query.$skip ? query.$skip : 0;
+      let end = 0;
+      if (query.$top){
+        end = start + query.$top;
+      }
+      let betweenSql = "";
+      if (end){
+        betweenSql = `BETWEEN ${start} + 1 and ${end}`;
+      }
+      else{
+        betweenSql = `> ${start}`;
+      }
+      const result = await queryRunner.query(`SELECT * from (${qs[0]}) as a WHERE ${RowIdKey} ${betweenSql}`, qs[1]);
       if (query.$count && query.$count !== 'false') {
         return {
           items: result.concat(),
           count: result.length
         }
       }
-      else{
+      else {
         return result.concat();
       }
     }
   }
-  let queryBuilder = inputQueryBuilder;
-  queryBuilder = queryBuilder
-    .andWhere(odataQuery.where)
-    .setParameters(mapToObject(odataQuery.parameters));
 
   if (odataQuery.select && odataQuery.select != '*') {
     queryBuilder = queryBuilder.select(odataQuery.select.split(',').map(i => i.trim()));

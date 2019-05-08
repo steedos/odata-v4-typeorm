@@ -64,7 +64,7 @@ class TypeOrmVisitor extends visitor_1.Visitor {
         let keys = this.parameters.keys();
         this.originalWhere = this.where;
         this.where = this.where.replace(rx, () => `:${keys.next().value}`);
-        this.includes.forEach((item) => item.asMsSql());
+        this.includes.forEach((item) => item.asPostgreSql());
         return this;
     }
     asType() {
