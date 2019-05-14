@@ -71,13 +71,11 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
   const queryRunner = inputQueryBuilder.obtainQueryRunner();
   const isPaging = query.$skip !== undefined || query.$top !== undefined;
   if (queryRunner && isPaging && [SQLLang.MsSql, SQLLang.Oracle].indexOf(options.type) >= 0) {
-    // 老版本的SQL server 不支持OFFSET FETCH 的语法来翻页，只能单独处理
-    const connectionOptions = queryRunner.connection.options.options;
-    const tdsVersion = connectionOptions && connectionOptions.tdsVersion;
-    // tdsVersion is less then 7_4, like 7_1,7_2,7_3_A,7_3_B...etc, the default value is 7_4
-    // 7_4是2012及以上版本的SQL Server
-    const oldVersionMsSql = options.type === SQLLang.MsSql && tdsVersion && tdsVersion.replace(/[^\d]/g, "") < 74;
-    const oldVersionOracle = options.type === SQLLang.Oracle;
+    // 老版本的SqlServer/Oracle数据库不支持OFFSET FETCH 的语法来翻页，只能单独处理
+    // SqlServer 2012版本号options.version为11.0.3128.0，这以下的版本，比如2008/2005都不支持OFFSET FETCH 的语法来翻页
+    const oldVersionMsSql = options.type === SQLLang.MsSql && options.version && parseInt(options.version) < 11;
+    // Oracle 12c版本号options.version为12.2...，这以下的版本，比如10.2都不支持OFFSET FETCH 的语法来翻页
+    const oldVersionOracle = options.type === SQLLang.Oracle && options.version && parseInt(options.version) < 12;
     if (oldVersionMsSql || oldVersionOracle) {
       let selectFields = "*";
       if (odataQuery.select && odataQuery.select !== '*') {
