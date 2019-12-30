@@ -70,10 +70,14 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
 
   const queryRunner = inputQueryBuilder.obtainQueryRunner();
   const isPaging = query.$skip !== undefined || query.$top !== undefined;
+  if(isPaging && query.$top === undefined){
+    query.$top = 100;
+  }
   if (queryRunner && isPaging && [SQLLang.MsSql, SQLLang.Oracle].indexOf(options.type) >= 0) {
     // 老版本的SqlServer/Oracle数据库不支持OFFSET FETCH 的语法来翻页，只能单独处理
     // SqlServer 2012版本号options.version为11.0.3128.0，这以下的版本，比如2008/2005都不支持OFFSET FETCH 的语法来翻页
     const oldVersionMsSql = options.type === SQLLang.MsSql && options.version && parseInt(options.version) < 11;
+    const tooOldVersionMsSql = oldVersionMsSql && parseInt(options.version) < 9;
     // Oracle 12c版本号options.version为12.2...，这以下的版本，比如10.2都不支持OFFSET FETCH 的语法来翻页
     const oldVersionOracle = options.type === SQLLang.Oracle && options.version && parseInt(options.version) < 12;
     if (oldVersionMsSql || oldVersionOracle) {
@@ -86,9 +90,14 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
         orderby = "(select null) ASC";
       }
       const RowNumberKey = "RowNumber";
-      if (oldVersionMsSql){
-        queryBuilder = queryBuilder.select(`${selectFields},ROW_NUMBER() OVER(ORDER BY ${orderby}) ${RowNumberKey}`);
-      }
+      if (oldVersionMsSql) {
+        if(tooOldVersionMsSql){
+            queryBuilder = queryBuilder.select(`top ${query.$top} ${selectFields}`);
+        }
+        else{
+            queryBuilder = queryBuilder.select(`${selectFields},ROW_NUMBER() OVER(ORDER BY ${orderby}) ${RowNumberKey}`);
+        }
+    }
       else if (oldVersionOracle){
         queryBuilder = queryBuilder.select(`${selectFields}`);
       }
@@ -109,14 +118,19 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
         end = start + query.$top;
       }
       if (oldVersionMsSql) {
-        let betweenSql = "";
-        if (end) {
-          betweenSql = `BETWEEN ${start} + 1 and ${end}`;
+        if(tooOldVersionMsSql){
+            splicedSql = `SELECT * FROM (${qs[0]}) A`;
         }
-        else {
-          betweenSql = `> ${start}`;
+        else{
+            let betweenSql = "";
+            if (end) {
+                betweenSql = `BETWEEN ${start} + 1 and ${end}`;
+            }
+            else {
+                betweenSql = `> ${start}`;
+            }
+            splicedSql = `SELECT * FROM (${qs[0]}) A WHERE ${RowNumberKey} ${betweenSql}`;
         }
-        splicedSql = `SELECT * FROM (${qs[0]}) A WHERE ${RowNumberKey} ${betweenSql}`;
       }
       else if (oldVersionOracle) {
         splicedSql = `SELECT * FROM (SELECT A.*, ROWNUM ${RowNumberKey} FROM (${qs[0]}) A ${end ? ('WHERE ROWNUM <= ' + end) : ''}) b WHERE B.${RowNumberKey} > ${start}`;
