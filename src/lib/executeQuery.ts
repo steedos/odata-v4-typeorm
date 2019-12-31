@@ -85,16 +85,16 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
       if (odataQuery.select && odataQuery.select !== '*') {
         selectFields = odataQuery.select;
       }
-      let orderby = odataQuery.orderby;
-      if (oldVersionMsSql && !(orderby && orderby !== '1')) {
-        orderby = "(select null) ASC";
-      }
       const RowNumberKey = "RowNumber";
       if (oldVersionMsSql) {
         if (tooOldVersionMsSql) {
           queryBuilder = queryBuilder.select(`top ${query.$top} ${selectFields}`);
         }
         else {
+          let orderby = odataQuery.orderby;
+          if (oldVersionMsSql && !(orderby && orderby !== '1')) {
+            orderby = "(select null) ASC";
+          }
           queryBuilder = queryBuilder.select(`${selectFields},ROW_NUMBER() OVER(ORDER BY ${orderby}) ${RowNumberKey}`);
         }
       }
