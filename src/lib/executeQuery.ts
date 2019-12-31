@@ -1,4 +1,4 @@
-import {createQuery} from './createQuery';
+import { createQuery } from './createQuery';
 import { SqlOptions } from './sqlOptions';
 import { SQLLang } from 'odata-v4-sql';
 
@@ -43,7 +43,7 @@ const processIncludes = (queryBuilder: any, odataQuery: any, alias: string) => {
       }
 
       if (item.includes && item.includes.length > 0) {
-        processIncludes(queryBuilder, {includes: item.includes}, item.navigationProperty);
+        processIncludes(queryBuilder, { includes: item.includes }, item.navigationProperty);
       }
     });
   }
@@ -70,7 +70,7 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
 
   const queryRunner = inputQueryBuilder.obtainQueryRunner();
   const isPaging = query.$skip !== undefined || query.$top !== undefined;
-  if(isPaging && query.$top === undefined){
+  if (isPaging && query.$top === undefined) {
     query.$top = 100;
   }
   if (queryRunner && isPaging && [SQLLang.MsSql, SQLLang.Oracle].indexOf(options.type) >= 0) {
@@ -91,14 +91,14 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
       }
       const RowNumberKey = "RowNumber";
       if (oldVersionMsSql) {
-        if(tooOldVersionMsSql){
-            queryBuilder = queryBuilder.select(`top ${query.$top} ${selectFields}`);
+        if (tooOldVersionMsSql) {
+          queryBuilder = queryBuilder.select(`top ${query.$top} ${selectFields}`);
         }
-        else{
-            queryBuilder = queryBuilder.select(`${selectFields},ROW_NUMBER() OVER(ORDER BY ${orderby}) ${RowNumberKey}`);
+        else {
+          queryBuilder = queryBuilder.select(`${selectFields},ROW_NUMBER() OVER(ORDER BY ${orderby}) ${RowNumberKey}`);
         }
-    }
-      else if (oldVersionOracle){
+      }
+      else if (oldVersionOracle) {
         queryBuilder = queryBuilder.select(`${selectFields}`);
       }
       if (oldVersionOracle && odataQuery.orderby && odataQuery.orderby !== '1') {
@@ -114,22 +114,22 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
       let splicedSql = "";
       let start = query.$skip ? query.$skip : 0;
       let end = 0;
-      if (query.$top){
+      if (query.$top) {
         end = start + query.$top;
       }
       if (oldVersionMsSql) {
-        if(tooOldVersionMsSql){
-            splicedSql = `SELECT * FROM (${qs[0]}) A`;
+        if (tooOldVersionMsSql) {
+          splicedSql = `SELECT * FROM (${qs[0]}) A`;
         }
-        else{
-            let betweenSql = "";
-            if (end) {
-                betweenSql = `BETWEEN ${start} + 1 and ${end}`;
-            }
-            else {
-                betweenSql = `> ${start}`;
-            }
-            splicedSql = `SELECT * FROM (${qs[0]}) A WHERE ${RowNumberKey} ${betweenSql}`;
+        else {
+          let betweenSql = "";
+          if (end) {
+            betweenSql = `BETWEEN ${start} + 1 and ${end}`;
+          }
+          else {
+            betweenSql = `> ${start}`;
+          }
+          splicedSql = `SELECT * FROM (${qs[0]}) A WHERE ${RowNumberKey} ${betweenSql}`;
         }
       }
       else if (oldVersionOracle) {
@@ -194,7 +194,7 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
 
 const executeQuery = async (repositoryOrQueryBuilder: any, query, options: SqlOptions) => {
   // options = options || {};
-  const alias =  options.alias || '';
+  const alias = options.alias || '';
   let queryBuilder = null;
 
   // check that input object is query builder
@@ -260,4 +260,4 @@ const getExecuteQuerySQL = async (repositoryOrQueryBuilder: any, query, options:
   return result;
 };
 
-export { executeQuery, executeCountQuery, getExecuteQuerySQL};
+export { executeQuery, executeCountQuery, getExecuteQuerySQL };
