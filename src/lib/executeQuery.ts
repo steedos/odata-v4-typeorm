@@ -101,7 +101,7 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
       else if (oldVersionOracle) {
         queryBuilder = queryBuilder.select(`${selectFields}`);
       }
-      if (oldVersionOracle && odataQuery.orderby && odataQuery.orderby !== '1') {
+      if ((oldVersionOracle || tooOldVersionMsSql) && odataQuery.orderby && odataQuery.orderby !== '1') {
         const orders = odataQuery.orderby.split(',').map(i => i.trim());
         orders.forEach((item) => {
           queryBuilder = queryBuilder.addOrderBy(...(item.split(' ')));
