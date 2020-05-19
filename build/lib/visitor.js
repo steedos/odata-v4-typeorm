@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const odata_v4_literal_1 = require("odata-v4-literal");
 const visitor_1 = require("odata-v4-sql/lib/visitor");
 class TypeOrmVisitor extends visitor_1.Visitor {
@@ -105,7 +104,7 @@ class TypeOrmVisitor extends visitor_1.Visitor {
             const ident = this.getIdentifier(node.value.name, context); //`${this.alias ? this.alias + '.' : ''}${node.value.name}`;
             this[context.target] += ident;
         }
-        context.identifier = /*this.getIdentifier(node.value.name, context); //*/ node.value.name;
+        context.identifier = node.value.name;
     }
     getIdentifier(originalIdentifier, context) {
         let alias = '';

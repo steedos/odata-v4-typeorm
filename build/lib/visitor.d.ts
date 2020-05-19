@@ -11,7 +11,7 @@ export declare class TypeOrmVisitor extends Visitor {
     protected VisitExpand(node: Token, context: any): void;
     protected VisitSelectItem(node: Token, context: any): void;
     protected VisitODataIdentifier(node: Token, context: any): void;
-    private getIdentifier;
+    private getIdentifier(originalIdentifier, context);
     protected VisitEqualsExpression(node: Token, context: any): void;
     protected VisitNotEqualsExpression(node: Token, context: any): void;
     protected VisitLiteral(node: Token, context: any): void;

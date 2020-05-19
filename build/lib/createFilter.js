@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const visitor_1 = require("./visitor");
 const odata_v4_parser_1 = require("odata-v4-parser");
 const odata_v4_sql_1 = require("odata-v4-sql");

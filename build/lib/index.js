@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const odataQueryMiddleware_1 = require("./odataQueryMiddleware");
 exports.odataQuery = odataQueryMiddleware_1.odataQuery;
 const executeQuery_1 = require("./executeQuery");

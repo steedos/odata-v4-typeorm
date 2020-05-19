@@ -4,12 +4,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
         function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
         function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
+        step((generator = generator.apply(thisArg, _arguments)).next());
     });
 };
-Object.defineProperty(exports, "__esModule", { value: true });
 const createQuery_1 = require("./createQuery");
 const odata_v4_sql_1 = require("odata-v4-sql");
+const _ = require("underscore");
 const mapToObject = (aMap) => {
     const obj = {};
     if (aMap) {
@@ -131,15 +131,34 @@ const executeQueryByQueryBuilder = (inputQueryBuilder, query, options, returnSql
                 splicedSql = `SELECT * FROM (SELECT A.*, ROWNUM ${RowNumberKey} FROM (${qs[0]}) A ${end ? ('WHERE ROWNUM <= ' + end) : ''}) b WHERE B.${RowNumberKey} > ${start}`;
             }
             try {
+                let getFieldMap = function (columns) {
+                    let map = {};
+                    _.each(columns, function (column) {
+                        if (column.givenDatabaseName && column.givenDatabaseName != column.propertyName) {
+                            map[column.givenDatabaseName] = column.propertyName;
+                        }
+                    });
+                    return map;
+                };
+                let columnsMap = getFieldMap(queryBuilder.expressionMap.mainAlias.metadata.columns);
                 const result = yield queryRunner.query(splicedSql, qs[1]);
+                let items = result.concat();
+                if (!_.isEmpty(columnsMap)) {
+                    items.map(function (item) {
+                        _.each(columnsMap, function (v, k) {
+                            item[v] = item[k];
+                            delete item[k];
+                        });
+                    });
+                }
                 if (query.$count && query.$count !== 'false') {
                     return {
-                        items: result.concat(),
+                        items: items,
                         count: result.length
                     };
                 }
                 else {
-                    return result.concat();
+                    return items;
                 }
             }
             finally {
