@@ -1,6 +1,7 @@
 import { createQuery } from './createQuery';
 import { SqlOptions } from './sqlOptions';
 import { SQLLang } from 'odata-v4-sql';
+const _ = require("underscore");
 
 const mapToObject = (aMap) => {
   const obj = {};
@@ -136,15 +137,34 @@ const executeQueryByQueryBuilder = async (inputQueryBuilder, query, options: Sql
         splicedSql = `SELECT * FROM (SELECT A.*, ROWNUM ${RowNumberKey} FROM (${qs[0]}) A ${end ? ('WHERE ROWNUM <= ' + end) : ''}) b WHERE B.${RowNumberKey} > ${start}`;
       }
       try {
+        let getFieldMap = function(columns){
+            let map = {};
+            _.each(columns, function(column){
+                if(column.givenDatabaseName && column.givenDatabaseName != column.propertyName){
+                    map[column.givenDatabaseName] = column.propertyName
+                }
+            })
+            return map;
+        }
+        let columnsMap = getFieldMap(queryBuilder.expressionMap.mainAlias.metadata.columns)
         const result = await queryRunner.query(splicedSql, qs[1]);
+        let items = result.concat();
+        if(!_.isEmpty(columnsMap)){
+          items.map(function(item){
+            _.each(columnsMap, function(v, k){
+                  item[v] = item[k];
+                  delete item[k];
+              })
+          })
+        }
         if (query.$count && query.$count !== 'false') {
           return {
-            items: result.concat(),
+            items: items,
             count: result.length
           }
         }
         else {
-          return result.concat();
+          return items;
         }
       } finally {
         if (queryRunner !== queryBuilder.queryRunner) {
