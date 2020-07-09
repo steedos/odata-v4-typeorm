@@ -151,7 +151,10 @@ class TypeOrmVisitor extends visitor_1.Visitor {
             if (context.literal != null) {
                 this.parameters.set(name, value);
             }
-            this.where += `:${name}`;
+            // this.where += `:${name}`;
+            // 因为useParameters为true，所以这里不可以把where追加为:p1这种格式，因为asOracleSql、asPostgreSql等用了正则替换?占位的方式重新设置:p{index}值
+            // 如果把where追加为:p1这种格式，已知的问题是VisitMethodCallExpression函数中的包括contains在内的所有method都只能写在过滤条件的最前面，而不可以写在后面的位置
+            this.where += `?`;
         }
         else
             this.where += (context.literal = visitor_1.SQLLiteral.convert(node.value, node.raw));
